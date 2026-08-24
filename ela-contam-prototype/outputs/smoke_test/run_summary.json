@@ -1,0 +1,31 @@
+{
+  "case_name": "smoke_test",
+  "solver": "CONTAM ContamX",
+  "physical_input": {
+    "room_volume_m3": 60.0,
+    "indoor_temperature_c": 25.0,
+    "outdoor_temperature_c": 15.0,
+    "normalized_ela_cm2_per_m2": 5.27,
+    "total_ela_cm2": 79.05,
+    "reference_pressure_pa": 4.0,
+    "discharge_coefficient": 1.0,
+    "flow_exponent": 0.65
+  },
+  "results": {
+    "inflow_mass_kg_s": 0.003189821866506499,
+    "outflow_mass_kg_s": 0.003189823669980328,
+    "mass_imbalance_kg_s": 1.8034738290435837e-09,
+    "relative_mass_imbalance": 5.653835495724143e-07,
+    "infiltration_volume_flow_m3_s": 0.002603955445694545,
+    "infiltration_ach_1_per_h": 0.1562373267416727,
+    "zone_pressure_pa_relative": -0.597701370716095,
+    "ambient_density_kg_m3": 1.2249909543500994,
+    "zone_density_kg_m3": 1.1839045555767556
+  },
+  "execution": {
+    "exit_code": 0,
+    "project_file": "C:\\Users\\lyuml\\Desktop\\infiltration\\ela-contam-prototype\\outputs\\smoke_test\\generated.prj",
+    "sim_file": "C:\\Users\\lyuml\\Desktop\\infiltration\\ela-contam-prototype\\outputs\\smoke_test\\generated.sim",
+    "sqlite_file": "C:\\Users\\lyuml\\Desktop\\infiltration\\ela-contam-prototype\\outputs\\smoke_test\\generated.sqlite3"
+  }
+}

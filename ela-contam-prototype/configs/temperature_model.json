@@ -1,0 +1,13 @@
+{
+  "case_name": "temperature_model",
+  "input_csv": "../data/TEMPERATURE-rev.csv",
+  "timestamp_column": "Timestamp",
+  "outdoor_column": "OUTDOOR",
+  "floor_columns": ["2FCORRIDOR", "3FCORRIDOR", "4FCORRIDOR"],
+  "train_fraction": 0.7,
+  "inner_train_fraction": 0.7,
+  "alpha_min": 0.5,
+  "alpha_max": 0.995,
+  "alpha_steps": 100,
+  "output_root": "outputs"
+}

@@ -1,0 +1,10 @@
+﻿# Use official release artifact of MoosasPy (choose one). Recommended: wheel.
+https://github.com/KLEGB/moosas/releases/download/moosaspy-v1.0.2/moosaspy-1.0.0-py3-none-any.whl
+# https://github.com/KLEGB/moosas/releases/download/moosaspy-v1.0.2/moosaspy-1.0.0.tar.gz
+
+numpy>=1.26,<2.0
+scipy>=1.14,<2.0
+networkx>=3.4,<4.0
+shapely>=2.0,<3.0
+matplotlib>=3.8,<4.0
+tinynumpy>=1.2,<2.0

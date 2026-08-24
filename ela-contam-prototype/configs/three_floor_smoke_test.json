@@ -1,0 +1,27 @@
+{
+  "case_name": "three_floor_smoke_test",
+  "contam_executable": "C:/Program Files (x86)/NIST/CONTAM 3.4.0.8/contamx3.exe",
+  "assumption_notice": "All geometry and ELA values in this case are hypothetical workflow-test inputs.",
+  "outdoor": {
+    "temperature_c": 15.0,
+    "barometric_pressure_pa": 101325.0,
+    "wind_speed_m_s": 0.0,
+    "wind_direction_deg": 0.0
+  },
+  "floors": [
+    {"name": "2FCORRIDOR", "base_height_m": 3.0, "height_m": 3.0, "volume_m3": 60.0, "exterior_wall_area_m2": 15.0, "indoor_temperature_c": 24.0},
+    {"name": "3FCORRIDOR", "base_height_m": 6.0, "height_m": 3.0, "volume_m3": 60.0, "exterior_wall_area_m2": 15.0, "indoor_temperature_c": 25.0},
+    {"name": "4FCORRIDOR", "base_height_m": 9.0, "height_m": 3.0, "volume_m3": 60.0, "exterior_wall_area_m2": 15.0, "indoor_temperature_c": 26.0}
+  ],
+  "leakage": {
+    "normalized_ela_cm2_per_m2": 5.27,
+    "reference_pressure_pa": 4.0,
+    "discharge_coefficient": 1.0,
+    "flow_exponent": 0.65,
+    "paths": [
+      {"name": "low", "relative_height_m": 0.25, "wall_area_fraction": 0.5},
+      {"name": "high", "relative_height_m": 2.75, "wall_area_fraction": 0.5}
+    ]
+  },
+  "output_root": "outputs"
+}

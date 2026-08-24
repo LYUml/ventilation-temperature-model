@@ -1,0 +1,54 @@
+{
+  "case_name": "three_floor_smoke_test",
+  "status": "workflow_test_only",
+  "assumption_notice": "All geometry and ELA values in this case are hypothetical workflow-test inputs.",
+  "outdoor": {
+    "temperature_c": 15.0,
+    "barometric_pressure_pa": 101325.0,
+    "wind_speed_m_s": 0.0,
+    "wind_direction_deg": 0.0
+  },
+  "floors": [
+    {
+      "floor": "2FCORRIDOR",
+      "base_height_m": 3.0,
+      "indoor_temperature_c": 24.0,
+      "total_ela_cm2": 79.05,
+      "zone_pressure_pa_relative": -0.5403291583061218,
+      "inflow_mass_kg_s": 0.002987733336832388,
+      "outflow_mass_kg_s": 0.002987734574492567,
+      "relative_mass_imbalance": 4.1424703162617686e-07,
+      "infiltration_volume_flow_m3_s": 0.002438983999206333,
+      "infiltration_ach_1_per_h": 0.14633903995237998
+    },
+    {
+      "floor": "3FCORRIDOR",
+      "base_height_m": 6.0,
+      "indoor_temperature_c": 25.0,
+      "total_ela_cm2": 79.05,
+      "zone_pressure_pa_relative": -0.597701370716095,
+      "inflow_mass_kg_s": 0.00318982186650652,
+      "outflow_mass_kg_s": 0.0031898236699803586,
+      "relative_mass_imbalance": 5.653835525634769e-07,
+      "infiltration_volume_flow_m3_s": 0.002603955445694562,
+      "infiltration_ach_1_per_h": 0.1562373267416737
+    },
+    {
+      "floor": "4FCORRIDOR",
+      "base_height_m": 9.0,
+      "indoor_temperature_c": 26.0,
+      "total_ela_cm2": 79.05,
+      "zone_pressure_pa_relative": -0.654562771320343,
+      "inflow_mass_kg_s": 0.0033834352168651024,
+      "outflow_mass_kg_s": 0.003383437750178183,
+      "relative_mass_imbalance": 7.487393791845051e-07,
+      "infiltration_volume_flow_m3_s": 0.002762008327367718,
+      "infiltration_ach_1_per_h": 0.16572049964206306
+    }
+  ],
+  "checks": {
+    "contam_exit_code": 0,
+    "all_floor_mass_balances_below_0_1_percent": true,
+    "all_floors_have_inflow_and_outflow": true
+  }
+}

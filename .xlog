@@ -1,0 +1,14 @@
+Program:  C:\Program Files (x86)\NIST\CONTAM 3.4.0.8\contamx3.exe
+  Version:  3.4.0.3 release 32 bit
+  Compiler: Visual C++ 1944
+  Created:  Fri Jan  9 02:41:24 2026
+Project (_file_name):  .prj
+cwd: C:\Users\lyuml\Desktop\infiltration
+prj arg = (null)
+_pdrive , _pdir , _prjname , _pext .prj
+
+Calling arguments (1):
+	argv[0] = C:\Program Files (x86)\NIST\CONTAM 3.4.0.8\contamx3.exe
+Running ContamX 3.4.0.3 on .prj
+ERROR  (file prj-read, line 246)
+ Could not open file .prj
