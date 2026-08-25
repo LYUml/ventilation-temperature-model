@@ -15,6 +15,8 @@ class TemperatureRcModelTests(unittest.TestCase):
             self.assertLess(values["thermal_response_per_h"], 1.0)
             self.assertIn("persistence_test_metrics", values)
             self.assertIn("rollout_test_metrics", values)
+            self.assertIn("neighbor_model", values)
+            self.assertGreaterEqual(values["neighbor_model"]["neighbor_response_per_h"], 0.0)
 
 
 if __name__ == "__main__":

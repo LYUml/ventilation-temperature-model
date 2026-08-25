@@ -4,6 +4,11 @@
   "timestamp_column": "Timestamp",
   "outdoor_column": "OUTDOOR",
   "floor_columns": ["2FCORRIDOR", "3FCORRIDOR", "4FCORRIDOR"],
+  "neighbor_columns": {
+    "2FCORRIDOR": ["2F215"],
+    "3FCORRIDOR": ["3F308", "3F309", "3F310"],
+    "4FCORRIDOR": ["4F408", "4F409", "4F410", "4F411"]
+  },
   "train_fraction": 0.7,
   "output_root": "outputs"
 }

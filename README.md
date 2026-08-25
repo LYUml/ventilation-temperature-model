@@ -45,3 +45,18 @@ python -m src.temperature_rc_model --config configs/temperature_rc_model.json
 ```
 
 详细方法见 [`doc/route/0824-技术路径.md`](doc/route/0824-技术路径.md)。
+
+## 当前真实数据入口
+
+- `data/NBuilding.rdf`：建筑空间、界面和几何来源；
+- `data/TEMPERATURE-rev.csv`：逐小时室外、走廊和办公室温度；
+- `ela-contam-prototype/outputs/weather/zero_wind_hourly.csv`：缺少实测风时的显式零风基准，不是真实气象；
+- `ela-contam-prototype/configs/rdf_three_floor_zero_wind.json`：真实RDF几何、情景ELA、零风条件的CONTAM配置。
+- `ela-contam-prototype/configs/rdf_stair_connected.json`：走廊—楼梯间及跨层连接的关闭、部分连通、开放三情景。
+
+运行三种楼梯间连通情景：
+
+```powershell
+cd ela-contam-prototype
+python -m src.run_stair_connected_case --config configs/rdf_stair_connected.json --scenario all
+```
