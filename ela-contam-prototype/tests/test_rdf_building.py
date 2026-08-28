@@ -17,6 +17,7 @@ class RdfBuildingTests(unittest.TestCase):
             self.assertAlmostEqual(corridor["height_m"], 4.0)
             self.assertAlmostEqual(corridor["base_height_m"], index * 4.0)
             self.assertGreater(corridor["exterior_wall_area_m2"], 0.0)
+            self.assertGreater(corridor["exterior_ua_w_k"], 0.0)
 
 
 if __name__ == "__main__":

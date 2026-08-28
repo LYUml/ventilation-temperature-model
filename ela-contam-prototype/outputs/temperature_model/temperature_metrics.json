@@ -1,6 +1,6 @@
 {
   "method": "causal exponentially weighted outdoor baseline plus floor-specific linear correction",
-  "input_csv": "C:\\Users\\lyuml\\Desktop\\infiltration\\data\\TEMPERATURE-rev.csv",
+  "input_csv": "C:\\Users\\lyuml\\Desktop\\ela-contam-floor-temperature-model\\data\\TEMPERATURE-rev.csv",
   "data_quality": {
     "row_count": 421,
     "start": "2026-05-09T00:00:00",
@@ -20,15 +20,15 @@
     "end": "2026-05-26T12:00:00"
   },
   "selected_alpha": 0.605,
-  "inner_validation_mean_rmse_c": 0.3100678676888314,
+  "inner_validation_mean_rmse_c": 0.31006786768883204,
   "floors": {
     "2FCORRIDOR": {
-      "intercept_c": 19.111496848213303,
-      "baseline_slope": 0.23258264887132674,
+      "intercept_c": 19.111496848213296,
+      "baseline_slope": 0.23258264887132687,
       "test_metrics": {
-        "rmse_c": 0.42927540403568726,
-        "mae_c": 0.3329198903525809,
-        "mean_error_c": 0.15195635137164196
+        "rmse_c": 0.4292754040356855,
+        "mae_c": 0.3329198903525801,
+        "mean_error_c": 0.15195635137163774
       }
     },
     "3FCORRIDOR": {

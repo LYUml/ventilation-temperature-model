@@ -12,7 +12,7 @@ SUBJECT_BLOCK = re.compile(r"(?ms)^<([^>]+)>\s+(.*?)(?=\n<|\Z)")
 
 def _number(body: str, predicate: str) -> float | None:
     match = re.search(rf"{re.escape(predicate)}\s+([^\s;,]+)", body)
-    return float(match.group(1)) if match else None
+    return float(match.group(1).strip('"')) if match else None
 
 
 def extract_building(rdf_path: Path) -> dict[str, Any]:
@@ -32,10 +32,13 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
         for space in re.findall(r"<Space_([^>]+)>", body):
             space_level[space] = altitude
 
-    element_area = {
-        name: area
+    element_properties = {
+        name: {
+            "area_m2": _number(body, "bes:hasArea_m2"),
+            "u_value_w_m2k": _number(body, "moosas:U_Value"),
+        }
         for name, body in blocks.items()
-        if (area := _number(body, "bes:hasArea_m2")) is not None
+        if "a bot:Element" in body
     }
     interfaces: dict[str, list[dict[str, Any]]] = {}
     door_count = 0
@@ -54,7 +57,11 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
                     "interface": name,
                     "surface_type": surface_type,
                     "element": elements[0] if elements else None,
-                    "area_m2": element_area.get(elements[0]) if elements else None,
+                    **(
+                        element_properties.get(elements[0], {})
+                        if elements
+                        else {"area_m2": None, "u_value_w_m2k": None}
+                    ),
                 }
             )
 
@@ -77,6 +84,16 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
             for item in items
             if item["surface_type"] == "bes:OperableWindow"
         )
+        opaque_exterior_ua = sum(
+            (item["area_m2"] or 0.0) * (item["u_value_w_m2k"] or 0.0)
+            for item in items
+            if item["surface_type"] == "bes:ExteriorWall"
+        )
+        window_ua = sum(
+            (item["area_m2"] or 0.0) * (item["u_value_w_m2k"] or 0.0)
+            for item in items
+            if item["surface_type"] == "bes:OperableWindow"
+        )
         spaces[uid] = {
             "floor_area_m2": floor_area,
             "volume_m3": volume,
@@ -84,6 +101,9 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
             "base_height_m": space_level.get(uid),
             "exterior_wall_area_m2": exterior_wall_area,
             "operable_window_area_m2": window_area,
+            "opaque_exterior_ua_w_k": opaque_exterior_ua,
+            "window_ua_w_k": window_ua,
+            "exterior_ua_w_k": opaque_exterior_ua + window_ua,
             "interface_count": len(items),
         }
 

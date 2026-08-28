@@ -1,4 +1,4 @@
-Running ContamX 3.4.0.3 on C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
+Running ContamX 3.4.0.3 on C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
 WARNING 3 zones linked to only one other zone. See XLog file for details.
 Running steady-state initialization:
  DATE: Jan01   time: 00:00:00

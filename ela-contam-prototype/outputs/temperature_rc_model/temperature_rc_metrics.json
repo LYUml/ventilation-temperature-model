@@ -1,7 +1,10 @@
 {
   "method": "first-order thermal resistance-capacitance model",
-  "equation": "T_next = T_now + heat_gain + response * (T_outdoor - T_now)",
-  "input_csv": "C:\\Users\\lyuml\\Desktop\\infiltration\\data\\TEMPERATURE-rev.csv",
+  "equations": {
+    "baseline": "T_next = T_now + heat_gain + response * (T_outdoor - T_now)",
+    "neighbor": "T_next = T_now + heat_gain + a*(T_outdoor-T_now) + d*(T_neighbor_mean-T_now)"
+  },
+  "input_csv": "C:\\Users\\lyuml\\Desktop\\ela-contam-floor-temperature-model\\data\\TEMPERATURE-rev.csv",
   "data_quality": {
     "row_count": 421,
     "start": "2026-05-09T00:00:00",
@@ -14,10 +17,10 @@
   "test_rows": 127,
   "floors": {
     "2FCORRIDOR": {
-      "heat_gain_c_per_h": 0.029010966480439288,
-      "thermal_response_per_h": 0.01423199795533169,
-      "time_constant_h_approx": 70.26420346170532,
-      "equilibrium_offset_from_outdoor_c": 2.0384324514022993,
+      "heat_gain_c_per_h": 0.029010966480439302,
+      "thermal_response_per_h": 0.014231997955331694,
+      "time_constant_h_approx": 70.2642034617053,
+      "equilibrium_offset_from_outdoor_c": 2.0384324514023,
       "persistence_test_metrics": {
         "rmse_c": 0.2193936664956173,
         "mae_c": 0.1535196849606299,
@@ -29,16 +32,35 @@
         "mean_error_c": -0.018899154399153933
       },
       "rollout_test_metrics": {
-        "rmse_c": 1.0627805938943355,
-        "mae_c": 0.9017527298782054,
-        "mean_error_c": -0.7207725482313532
+        "rmse_c": 1.0627805938943347,
+        "mae_c": 0.9017527298782047,
+        "mean_error_c": -0.7207725482313531
+      },
+      "neighbor_model": {
+        "columns": [
+          "2F215"
+        ],
+        "aggregation": "arithmetic mean of adjacent measured rooms",
+        "heat_gain_c_per_h": -0.15307240098345443,
+        "outdoor_response_per_h": 0.017361468380281315,
+        "neighbor_response_per_h": 0.05406473337034588,
+        "one_step_test_metrics": {
+          "rmse_c": 0.2131082829998085,
+          "mae_c": 0.14601026632620248,
+          "mean_error_c": -0.03803497502854749
+        },
+        "rollout_test_metrics": {
+          "rmse_c": 0.691603701680473,
+          "mae_c": 0.564042183415274,
+          "mean_error_c": -0.3775489539126574
+        }
       }
     },
     "3FCORRIDOR": {
       "heat_gain_c_per_h": 0.02359660418892803,
-      "thermal_response_per_h": 0.007538047763670036,
-      "time_constant_h_approx": 132.6603427507511,
-      "equilibrium_offset_from_outdoor_c": 3.130333599457002,
+      "thermal_response_per_h": 0.0075380477636700395,
+      "time_constant_h_approx": 132.66034275075106,
+      "equilibrium_offset_from_outdoor_c": 3.1303335994570007,
       "persistence_test_metrics": {
         "rmse_c": 0.15996363898504923,
         "mae_c": 0.1308790454330708,
@@ -53,13 +75,34 @@
         "rmse_c": 0.6080582320167547,
         "mae_c": 0.49822673733913503,
         "mean_error_c": -0.3866145758436781
+      },
+      "neighbor_model": {
+        "columns": [
+          "3F308",
+          "3F309",
+          "3F310"
+        ],
+        "aggregation": "arithmetic mean of adjacent measured rooms",
+        "heat_gain_c_per_h": -0.013581981044280506,
+        "outdoor_response_per_h": 0.01048751586746743,
+        "neighbor_response_per_h": 0.028865784300926244,
+        "one_step_test_metrics": {
+          "rmse_c": 0.15499604076622864,
+          "mae_c": 0.128750807319245,
+          "mean_error_c": -0.013996738906156731
+        },
+        "rollout_test_metrics": {
+          "rmse_c": 0.4694932112035069,
+          "mae_c": 0.38884863598612524,
+          "mean_error_c": -0.22426376532745804
+        }
       }
     },
     "4FCORRIDOR": {
-      "heat_gain_c_per_h": 0.022810540621923926,
-      "thermal_response_per_h": 0.005765509656371118,
-      "time_constant_h_approx": 173.44520425786817,
-      "equilibrium_offset_from_outdoor_c": 3.956378877401995,
+      "heat_gain_c_per_h": 0.022810540621923912,
+      "thermal_response_per_h": 0.005765509656371117,
+      "time_constant_h_approx": 173.44520425786823,
+      "equilibrium_offset_from_outdoor_c": 3.9563788774019937,
       "persistence_test_metrics": {
         "rmse_c": 0.19963540086551088,
         "mae_c": 0.14375690834645666,
@@ -74,12 +117,35 @@
         "rmse_c": 0.8780344442135685,
         "mae_c": 0.7050540648291055,
         "mean_error_c": -0.4397700650476518
+      },
+      "neighbor_model": {
+        "columns": [
+          "4F408",
+          "4F409",
+          "4F410",
+          "4F411"
+        ],
+        "aggregation": "arithmetic mean of adjacent measured rooms",
+        "heat_gain_c_per_h": -0.03422276103841932,
+        "outdoor_response_per_h": 0.011980541312526478,
+        "neighbor_response_per_h": 0.09593000758729173,
+        "one_step_test_metrics": {
+          "rmse_c": 0.19527052946175794,
+          "mae_c": 0.14769237398935162,
+          "mean_error_c": 0.034991787554216905
+        },
+        "rollout_test_metrics": {
+          "rmse_c": 0.7561161276457254,
+          "mae_c": 0.6549101657271537,
+          "mean_error_c": 0.34922599833847257
+        }
       }
     }
   },
   "interpretation": {
     "one_step": "Uses the measured indoor temperature from the previous hour.",
     "rollout": "Uses only the final training indoor temperature and then predicts continuously.",
-    "warning": "Temperature alone cannot uniquely identify infiltration ELA and envelope heat transfer."
+    "warning": "Temperature alone cannot uniquely identify infiltration ELA and envelope heat transfer.",
+    "neighbor_boundary": "Adjacent-room temperatures are observed boundary conditions; they improve corridor prediction but do not identify air leakage."
   }
 }

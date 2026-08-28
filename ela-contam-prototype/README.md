@@ -1,65 +1,46 @@
-# ELA-CONTAM 最小原型
+# 可运行原型
 
-这个目录是独立实验区，不会修改 `archive-*` 中师兄提供的文件。
+这里包含当前研究主线的 Python 实现。命令均从本目录运行。
 
-## 名词
+## 源码索引
 
-- **ELA（Effective Leakage Area，有效漏风面积）**：把许多细小缝隙等效成一个孔洞后的面积。
-- **CONTAM**：美国国家标准与技术研究院（NIST）开发的建筑空气流动计算软件。
-- **ContamX**：CONTAM 的命令行计算程序，由 Python 自动调用。
-- **烟囱效应**：室内外温差造成空气在低处进入、高处排出的现象。
-- **ACH（Air Changes per Hour，每小时换气次数）**：一小时进入房间的室外空气量相当于几个房间体积。
-- **RMSE（均方根误差）**和 **MAE（平均绝对误差）**：温度预测误差，单位为摄氏度，越小越好。
+### 基础模块
 
-## 运行最小漏风案例
+- `rdf_building.py`：从 RDF 提取空间、面积、U 值和 UA。
+- `temperature_model.py`：核滑动平均基线及通用数据检查、指标函数。
+- `temperature_rc_model.py`：早期 RC 温度模型。
+- `ela.py`、`weather_input.py`：ELA 和气象输入工具。
 
-在本目录执行：
+### 当前验证与模型比较
 
-```powershell
-python -m src.run_case --config configs/smoke_test.json
-```
+- `validate_24h_baseline.py`：无未来室温泄漏的 24 小时滚动基线。
+- `benchmark_baseline_models.py`：传统基线模型比较。
+- `benchmark_hybrid_methods.py`：RC、NARX及混合方法比较。
+- `validate_mlp_nsga.py`：MLP/多目标搜索实验。
+- `validate_ceff_state_space.py`：固定 Ceff 状态空间实验。
+- `validate_rdf_2r2c.py`：RDF 约束的统一 2R2C 模型及参数贴边诊断。
 
-结果写入 `outputs/smoke_test/`：
+### CONTAM 工作流
 
-- `generated.prj`：Python 生成的 CONTAM 项目文件；
-- `generated.sim`：ContamX 的二进制结果；
-- `generated.sqlite3`：Python 可直接读取的结果数据库；
-- `path_flows.csv`：高、低漏风路线的压力与流量；
-- `run_summary.json`：质量守恒、换气次数和运行状态；
-- `contam_stdout.log`、`contam_xlog.log`：完整计算日志。
+- `run_case.py`：单区最小案例。
+- `run_three_floor_case.py`：三层走廊案例。
+- `run_stair_connected_case.py`：楼梯间连通情景。
 
-## 运行自动测试
+## 推荐命令
 
 ```powershell
+python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
+python -m src.validate_24h_baseline --config configs/temperature_model.json
+python -m src.validate_rdf_2r2c --config configs/temperature_model.json
 ```
 
-测试包括质量守恒、等温零流量、近似零 ELA、ELA 加倍以及重复运行一致性。
-
-## 运行楼层基准温度模型
-
-```powershell
-python -m src.temperature_model --config configs/temperature_model.json
-```
-
-第二版物理热惯性模型：
-
-```powershell
-python -m src.temperature_rc_model --config configs/temperature_rc_model.json
-```
-
-RC 是“热阻–热容”模型。结果同时给出使用上一小时实测温度的一步预测，以及不再读取后续室温的连续预测，避免只看一个偏乐观的误差。
-
-三楼层假设尺寸流程测试：
-
-```powershell
-python -m src.run_three_floor_case --config configs/three_floor_smoke_test.json
-```
-
-该案例的尺寸和 ELA 全部是假设值，只用于确认三层模型自动生成、求解、读取和守恒检查能够完整运行。
-
-程序只读取 `../data/TEMPERATURE-rev.csv`，以前 70% 时间数据建立模型，以后 30% 时间数据检查模型。结果写入 `outputs/temperature_model/`。
+结果自动写入 `outputs/`。该目录属于可再生成的本地文件，不提交到 Git。
 
 ## 重要限制
 
-最小案例使用的 ELA 是文献参考值，只用于验证程序，不代表实际办公楼。真实建筑需要气密性测试数据，或者明确标记为低、中、高漏风情景。
+- 当前温度数据只有 421 小时，且集中在一个春季时段。
+- RDF 的可开启窗属性不等于测量期间真实开启状态。
+- 暂无实测 ELA、风、太阳辐射、HVAC 功率和人员数据。
+- `165 kJ/(m²·K)` 是中等热质量类别默认值，不是该建筑实测热容量。
+- 参数达到上下界时只表示不可辨识或模型缺项，不能作为建筑物理结论。

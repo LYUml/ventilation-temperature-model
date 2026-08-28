@@ -2,17 +2,17 @@ Program:  C:\Program Files (x86)\NIST\CONTAM 3.4.0.8\contamx3.exe
   Version:  3.4.0.3 release 32 bit
   Compiler: Visual C++ 1944
   Created:  Fri Jan  9 02:41:24 2026
-Project (_file_name):  C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
-cwd: C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test
-prj arg = C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
-_pdrive C:, _pdir \Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\, _prjname generated, _pext .prj
-  Updated:  Mon Aug 24 17:36:01 2026
+Project (_file_name):  C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
+cwd: C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test
+prj arg = C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
+_pdrive C:, _pdir \Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\, _prjname generated, _pext .prj
+  Updated:  Fri Aug 28 11:22:59 2026
 Calling arguments (2):
 	argv[0] = C:/Program Files (x86)/NIST/CONTAM 3.4.0.8/contamx3.exe
-	argv[1] = C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
-Running ContamX 3.4.0.3 on C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
+	argv[1] = C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
+Running ContamX 3.4.0.3 on C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
 
-Reading project file: C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
+Reading project file: C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\generated.prj
 Run Control section read successfully.
 Speices section read successfully.
 Level section read successfully.
@@ -85,8 +85,8 @@ Solve nonlinear equations by Newton-Raphson with variable trust region.
   relcnvg = 1e-05, abscnvg = 2e-06, itmax = 30
 Solve Jacobian SLAE by symmetric SKYline method.
 Arrays: 46840 bytes allocated, 14232 freed, 32608 net
-sqlite: Opening C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\generated.sqlite3 ...
-sqlite: Opened C:\Users\lyuml\Desktop\infiltration\ela-contam-prototype\outputs\three_floor_smoke_test\generated.sqlite3.
+sqlite: Opening C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\generated.sqlite3 ...
+sqlite: Opened C:\Users\lyuml\Desktop\ela-contam-floor-temperature-model\ela-contam-prototype\outputs\three_floor_smoke_test\generated.sqlite3.
 sqlite: Foreign keys enabled.
 sqlite: Synchronous disk writes are off.
 sqlite: Journaling set to MEMORY.
