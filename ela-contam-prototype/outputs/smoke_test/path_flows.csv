@@ -1,3 +1,0 @@
-path_number,path_name,relative_height_m,represented_wall_area_m2,path_ela_cm2,pressure_difference_pa,mass_flow_kg_s,secondary_mass_flow_kg_s,volume_flow_m3_s,direction
-1,low_leakage,0.25,7.5,39.525,0.4969832167320142,0.003189821866506499,0.0,0.002603955445694545,outdoor_to_room
-2,high_leakage,2.75,7.5,39.525,-0.5101984943326908,-0.003189823669980328,0.0,-0.0026943250238836707,room_to_outdoor

@@ -28,18 +28,9 @@ Thumbs.db
 *.temp
 
 # Generated model outputs
-ela-contam-prototype/outputs/
-BiCEM/outputs/
-BiCEM/logs/
-
-# Generated CONTAM files
-*.sim
+baseline-temperature/outputs/
 *.xlog
-*.xrf
-*.sqlite3
-*.lfr
-*.nfr
-*.net
 
-# Moosas runtime files
-moosas/MoosasPy/__temp__/
+# Out-of-scope legacy tool kept locally, if present
+moosas/
+BiCEM/
