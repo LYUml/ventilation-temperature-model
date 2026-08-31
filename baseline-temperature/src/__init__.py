@@ -1,1 +1,0 @@
-"""Independent ELA-CONTAM prototype."""

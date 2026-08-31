@@ -1,74 +1,57 @@
-# Corridor Baseline Temperature Model
+# Baseline corridor temperature models
 
-建筑走廊未来 24 小时基线温度建模仓库。范围只包括基线温度：从 RDF 提取建筑物理信息，利用逐小时室外、走廊和房间温度建立并验证预测模型。TPE、ELA、CONTAM 和后续参数标定由师兄负责，不在本仓库维护范围内。
+极简、可复现的走廊未来24小时温度模型。最终工作树只使用真实温度、真实54399气象数据和真实建筑RDF。
 
-## 目录
+## 文件结构
 
 ```text
 ventilation-temperature-model/
-├── data/                         原始研究数据
-│   ├── NBuilding.rdf             建筑空间、界面、面积和 U 值
-│   └── TEMPERATURE-rev.csv       421 小时室外/走廊/房间温度
-├── baseline-temperature/         可运行的基线温度研究代码
-│   ├── configs/                  可复现实验配置
-│   ├── src/                      温度模型与验证
-│   ├── tests/                    自动测试
-│   └── outputs/                  本地生成结果（Git 忽略）
-├── doc/route4recap/              方法路线与跨设备交接记录
-├── manuscript.md                 研究文稿
-└── README.md
+├── README.md
+├── config.json                    唯一配置入口
+├── requirements.txt               最小依赖
+├── data/                           只读真实输入
+│   ├── building.rdf
+│   ├── temperature.csv
+│   └── weather_54399.csv
+├── model/
+│   ├── common/
+│   │   ├── data.py                数据QA、切分、指标
+│   │   └── rdf.py                 RDF几何与共享界面提取
+│   ├── kernel/
+│   │   ├── README.md
+│   │   └── run.py                 稳定核基线
+│   ├── rdf_msts/
+│   │   ├── README.md
+│   │   ├── ABLATION.md
+│   │   └── run.py                 原创统一RDF-MSTS
+│   └── compare.py                 统一比较入口
+├── docs/
+│   ├── MODEL_AUDIT.md             数据、参数与幻觉审计
+│   └── manuscript.md              研究文稿
+├── tests/                          数据、RDF、模型回归测试
+└── results/                        可再生成，Git忽略
 ```
 
-## 数据现状
+## 方法
 
-`TEMPERATURE-rev.csv` 覆盖 2026-05-09 00:00 至 2026-05-26 12:00，共 421 个连续小时，无缺失值。字段包括：
+### 1. Kernel baseline
 
-- 室外温度：`OUTDOOR`
-- 走廊温度：`2FCORRIDOR`、`3FCORRIDOR`、`4FCORRIDOR`
-- 房间温度：`2F215`、`3F308`–`3F310`、`4F408`–`4F411`、`5F510`
+仅使用室外温度慢状态。平均RMSE `0.344 °C`，作为锁定基线。
 
-RDF 提供几何、空间邻接、围护结构面积、U 值、窗 SHGC 和表面朝向。它作为温度模型的建筑信息输入，不在本仓库中执行 CONTAM。
+### 2. RDF graph state
 
-## 快速开始
+RDF共享构件生成2F↔3F↔4F拓扑，RDF界面UA生成邻室边界。平均RMSE `0.397 °C`，用于证明“加入RDF”本身不会自动改善预测。
+
+### 3. RDF-MSTS（主方法）
+
+RDF-constrained Multi-scale Spatial Thermal State model。Kernel慢趋势是统一状态方程内部的慢流形，图约束VARX只递推偏离慢流形的创新状态；没有多个完整模型的输出加权。平均RMSE `0.319 °C`，相对Kernel提升约`7.3%`。
+
+## 运行
 
 ```powershell
-cd baseline-temperature
 python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
+python -m model.compare
 ```
 
-运行当前物理约束模型：
-
-```powershell
-python -m src.validate_rdf_2r2c --config configs/temperature_model.json
-```
-
-运行核滑动平均基线：
-
-```powershell
-python -m src.validate_24h_baseline --config configs/temperature_model.json
-```
-
-运行候选模型比较：
-
-```powershell
-python -m src.benchmark_baseline_models --config configs/temperature_model.json
-python -m src.benchmark_hybrid_methods --config configs/temperature_model.json
-```
-
-所有运行结果写入 `baseline-temperature/outputs/`。该目录不提交到 Git，可由上述命令重新生成。
-
-## 当前结论
-
-- 核滑动平均的锁定测试集平均 24 小时 RMSE 约为 `0.344 °C`。
-- RDF 约束 2R2C 当前约为 `0.541 °C`，尚未超过基线。
-- RC 参数出现贴边，说明当前数据不足以独立辨识所有热阻、热容量和未知热增益。
-- 下一步应先利用已有房间温度建立房间–走廊热耦合，再考虑增加太阳辐射、HVAC、风和门窗状态数据。
-
-## 数据与复现约定
-
-- `data/` 是原始输入，不由模型脚本覆盖。
-- `configs/` 保存可提交、可复现的实验条件。
-- `outputs/` 只保存派生结果，不进入版本控制。
-- 新模型必须按时间划分训练、验证、测试集，并与相同测试窗口下的核基线比较。
-- 标准默认值和人为边界必须在结果中标记，不得写成实测或已标定参数。
+生成结果写入`results/`。参数与删除的假设见[模型审计](docs/MODEL_AUDIT.md)。

@@ -28,7 +28,7 @@ Thumbs.db
 *.temp
 
 # Generated model outputs
-baseline-temperature/outputs/
+results/
 *.xlog
 
 # Out-of-scope legacy tool kept locally, if present
