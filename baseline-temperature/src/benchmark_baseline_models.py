@@ -17,6 +17,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from .temperature_model import PROJECT_ROOT, causal_ewma, fit_linear, metrics, predict_linear, validate_data
 from .validate_mlp_nsga import make_windows
+from .weather_data import WEATHER_COLUMNS, merge_hourly_weather, weather_windows
 
 
 def choose(candidates, x, y, vx, vy):
@@ -53,6 +54,11 @@ def run_benchmark(config_path: Path) -> dict[str, Any]:
     frame = pd.read_csv((PROJECT_ROOT / config["input_csv"]).resolve())
     ts, outdoor_name, floors = config["timestamp_column"], config["outdoor_column"], list(config["floor_columns"])
     frame[ts] = pd.to_datetime(frame[ts], errors="raise")
+    weather_qa = None
+    weather = None
+    if config.get("weather_csv"):
+        frame, weather_qa = merge_hourly_weather(frame, ts, (PROJECT_ROOT / config["weather_csv"]).resolve())
+        weather = frame[WEATHER_COLUMNS].to_numpy(float)
     qa = validate_data(frame, ts, [outdoor_name, *floors])
     outdoor, indoor, hours = frame[outdoor_name].to_numpy(float), frame[floors].to_numpy(float), frame[ts].dt.hour.to_numpy()
     train_end, val_end = int(len(frame) * .60), int(len(frame) * .80)
@@ -91,6 +97,18 @@ def run_benchmark(config_path: Path) -> dict[str, Any]:
     _, state_models["narx_mlp"] = choose([(str(h), make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=h, alpha=.03, early_stopping=True, max_iter=1200, random_state=46))) for h in ((8,), (16,), (32,), (16, 8))], txs, train_y, vxs, val_y)
     state_models["narx_extra_trees"] = ExtraTreesRegressor(n_estimators=300, min_samples_leaf=3, max_features=.8, random_state=47, n_jobs=-1).fit(txs, train_y)
 
+    weather_state_model = None
+    weather_exs = None
+    if weather is not None:
+        train_weather = weather_windows(weather, train_keys)
+        val_weather = weather_windows(weather, val_keys)
+        test_weather = weather_windows(weather, test_keys)
+        weather_txs, weather_vxs, weather_exs = np.c_[txs, train_weather], np.c_[vxs, val_weather], np.c_[exs, test_weather]
+        _, weather_state_model = choose(
+            [(str(a), make_pipeline(StandardScaler(), Ridge(alpha=a))) for a in (.1, 1, 10, 100, 1000)],
+            weather_txs, train_y, weather_vxs, val_y,
+        )
+
     predictions = {"kernel": ktest}
     for name, model in models.items(): predictions[name] = ktest + model.predict(test_x) if name == "kernel_plus_mlp_residual" else model.predict(test_x)
     gp_pred = np.empty_like(test_y)
@@ -98,6 +116,8 @@ def run_benchmark(config_path: Path) -> dict[str, Any]:
         mask = np.asarray([f == floor_index for _, f in test_keys]); gp_pred[mask] = gp.predict(test_x[mask])
     predictions["gaussian_process"] = gp_pred
     for name, model in state_models.items(): predictions[name] = model.predict(exs)
+    if weather_state_model is not None and weather_exs is not None:
+        predictions["narx_ridge_weather"] = weather_state_model.predict(weather_exs)
     params_2r2c = [fit_2r2c(outdoor[:train_end], indoor[:train_end, j]) for j in range(3)]
     predictions["2r2c"] = np.asarray([predict_2r2c(params_2r2c[f], indoor[o - 1, f], outdoor[o:o + 24]) for o, f in test_keys])
 
@@ -108,7 +128,7 @@ def run_benchmark(config_path: Path) -> dict[str, Any]:
             mask = np.asarray([key[1] == f for key in test_keys]); per_floor[floor] = metrics(test_y[mask].reshape(-1), pred[mask].reshape(-1))
         results[name] = {"requires_initial_corridor_temperature": name.startswith("narx") or name == "2r2c", "mean_floor_rmse_c": float(np.mean([v["rmse_c"] for v in per_floor.values()])), "floors": per_floor}
     ranking = sorted(results, key=lambda name: results[name]["mean_floor_rmse_c"])
-    result = {"data_quality": qa, "split": {"train": [0, train_end], "validation": [train_end, val_end], "test": [val_end, len(frame)]}, "test_windows_per_floor": len(test_keys) // 3, "ranking": ranking, "models": results, "kernel_alpha": best_alpha, "two_r2c_parameters": {f: p.tolist() for f, p in zip(floors, params_2r2c)}, "caveats": ["One building and 17.5 days only.", "Windows overlap.", "State-aware models read corridor temperature once before the forecast window."]}
+    result = {"data_quality": qa, "weather_data_quality": weather_qa, "split": {"train": [0, train_end], "validation": [train_end, val_end], "test": [val_end, len(frame)]}, "test_windows_per_floor": len(test_keys) // 3, "ranking": ranking, "models": results, "kernel_alpha": best_alpha, "two_r2c_parameters": {f: p.tolist() for f, p in zip(floors, params_2r2c)}, "caveats": ["One building and 17.5 days only.", "Windows overlap.", "State-aware models read corridor temperature once before the forecast window."]}
     output = PROJECT_ROOT / "outputs" / "baseline_model_benchmark"; output.mkdir(parents=True, exist_ok=True)
     (output / "metrics.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     pd.DataFrame([{"rank": i + 1, "model": n, "mean_floor_rmse_c": results[n]["mean_floor_rmse_c"], "requires_initial_corridor_temperature": results[n]["requires_initial_corridor_temperature"]} for i, n in enumerate(ranking)]).to_csv(output / "ranking.csv", index=False)

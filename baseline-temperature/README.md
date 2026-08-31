@@ -1,6 +1,13 @@
-# 可运行原型
+# 基线温度模型
 
-这里仅包含基线温度建模的 Python 实现。命令均从本目录运行。
+这里包含基线温度建模的Python实现。先阅读 [`methods/README.md`](methods/README.md)，可按“稳定基线、物理灰箱、数据驱动、混合融合、统一状态空间”查找方法。
+
+## 当前推荐
+
+- 稳定交付基线：Kernel，平均RMSE 0.344 °C。
+- 当前性能最好：KL-TIF融合，平均RMSE 0.270 °C。
+- 统一RDF约束研究模型：RDF-MSTS，平均RMSE 0.401 °C；当前未超过Kernel。
+- 物理研究线：气象＋邻室＋RDF-2R2C，平均RMSE 0.431 °C。
 
 ## 源码索引
 
@@ -18,6 +25,8 @@
 - `validate_mlp_nsga.py`：MLP/多目标搜索实验。
 - `validate_ceff_state_space.py`：固定 Ceff 状态空间实验。
 - `validate_rdf_2r2c.py`：RDF 约束的统一 2R2C 模型及参数贴边诊断。
+- `benchmark_open_innovation.py`：ARX、MIMO-N4SID、pvlib 朝向辐射，以及原创 Kernel Latent Thermal Innovation 融合的锁定比较。
+- `validate_rdf_msts.py`：无输出融合的RDF-MSTS统一多尺度空间热状态原型。
 
 ## 推荐命令
 
@@ -26,6 +35,8 @@ python -m pip install -r requirements.txt
 python -m unittest discover -s tests -v
 python -m src.validate_24h_baseline --config configs/temperature_model.json
 python -m src.validate_rdf_2r2c --config configs/temperature_model.json
+python -m src.benchmark_open_innovation --config configs/temperature_model.json
+python -m src.validate_rdf_msts --config configs/temperature_model.json
 ```
 
 结果自动写入 `outputs/`。该目录属于可再生成的本地文件，不提交到 Git。
@@ -33,7 +44,8 @@ python -m src.validate_rdf_2r2c --config configs/temperature_model.json
 ## 重要限制
 
 - 当前温度数据只有 421 小时，且集中在一个春季时段。
+- `data/543990(1).csv` 已按小时严格对齐，提供湿度、气压、降雨、风速/风向和直散射辐射；站点 `TEM` 与原 `OUTDOOR` 完全一致，未重复作为特征。
 - RDF 的可开启窗属性不等于测量期间真实开启状态。
-- 暂无风、太阳辐射、HVAC 功率和人员数据。
+- 仍缺 HVAC 功率、人员以及门窗实际状态。
 - `165 kJ/(m²·K)` 是中等热质量类别默认值，不是该建筑实测热容量。
 - 参数达到上下界时只表示不可辨识或模型缺项，不能作为建筑物理结论。

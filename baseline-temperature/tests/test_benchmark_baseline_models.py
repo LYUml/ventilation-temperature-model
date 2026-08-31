@@ -9,6 +9,8 @@ class BaselineModelBenchmarkTests(unittest.TestCase):
         self.assertEqual(result["test_windows_per_floor"], 62)
         for name in ("kernel", "2r2c", "gaussian_process", "gradient_boosting", "narx_ridge"):
             self.assertIn(name, result["models"])
+        self.assertIn("narx_ridge_weather", result["models"])
+        self.assertEqual(result["weather_data_quality"]["matched_rows"], 421)
 
 
 if __name__ == "__main__": unittest.main()

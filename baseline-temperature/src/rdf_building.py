@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +42,7 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
         if "a bot:Element" in body
     }
     interfaces: dict[str, list[dict[str, Any]]] = {}
+    element_spaces: dict[str, set[str]] = defaultdict(set)
     door_count = 0
     for name, body in blocks.items():
         if "a bot:Interface" not in body:
@@ -52,6 +54,8 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
         if "door" in surface_type.lower() or "door" in name.lower():
             door_count += 1
         for space in spaces:
+            if elements:
+                element_spaces[elements[0]].add(space)
             interfaces.setdefault(space, []).append(
                 {
                     "interface": name,
@@ -106,6 +110,27 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
             "exterior_ua_w_k": opaque_exterior_ua + window_ua,
             "interface_count": len(items),
         }
+
+    adjacency: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for element, connected_spaces in element_spaces.items():
+        if len(connected_spaces) < 2:
+            continue
+        properties = element_properties.get(element, {})
+        for source in connected_spaces:
+            for target in connected_spaces:
+                if source == target:
+                    continue
+                source_item = next((item for item in interfaces.get(source, []) if item["element"] == element), None)
+                adjacency[source].append({
+                    "space": target,
+                    "element": element,
+                    "surface_type": source_item["surface_type"] if source_item else "unknown",
+                    "area_m2": properties.get("area_m2"),
+                    "u_value_w_m2k": properties.get("u_value_w_m2k"),
+                    "ua_w_k": (properties.get("area_m2") or 0.0) * (properties.get("u_value_w_m2k") or 0.0),
+                })
+    for name, space in spaces.items():
+        space["adjacent_spaces"] = adjacency.get(name, [])
 
     target_names = ["2FCORRIDOR", "3FCORRIDOR", "4FCORRIDOR"]
     missing = [name for name in target_names if name not in spaces]

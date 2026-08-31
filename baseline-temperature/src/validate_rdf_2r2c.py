@@ -12,12 +12,18 @@ from scipy.optimize import least_squares
 
 from .rdf_building import extract_building
 from .temperature_model import PROJECT_ROOT, causal_ewma, fit_linear, metrics, predict_linear, validate_data
+from .weather_data import merge_hourly_weather
 
 
 DT_SECONDS = 3600.0
 RHO_AIR_KG_M3 = 1.2
 CP_AIR_J_KGK = 1005.0
 NOMINAL_CEFF_J_M2K = 165_000.0
+ROOM_COLUMNS = {
+    "2FCORRIDOR": ["2F215"],
+    "3FCORRIDOR": ["3F308", "3F309", "3F310"],
+    "4FCORRIDOR": ["4F408", "4F409", "4F410", "4F411", "5F510"],
+}
 
 
 def _physical_parameters(raw: np.ndarray, corridor: dict[str, float]) -> dict[str, float]:
@@ -39,6 +45,10 @@ def _physical_parameters(raw: np.ndarray, corridor: dict[str, float]) -> dict[st
         "qsin_w": float(raw[5]),
         "qcos_w": float(raw[6]),
         "initial_mass_offset_c": float(raw[7]),
+        "room_ua_w_k": float(raw[8]),
+        "diffuse_solar_aperture_m2": float(raw[9]),
+        "direct_solar_aperture_m2": float(raw[10]),
+        "wind_infiltration_ua_w_k_per_ms": float(raw[11]),
     }
 
 
@@ -47,57 +57,58 @@ def _heat_gain(p: dict[str, float], hour: float) -> float:
     return p["q0_w"] + p["qsin_w"] * math.sin(angle) + p["qcos_w"] * math.cos(angle)
 
 
-def _step(ti: float, tm: float, tout: float, hour: float, p: dict[str, float]) -> tuple[float, float]:
-    g_direct = p["window_ua_w_k"] + p["infiltration_ua_w_k"]
-    d_ti = (g_direct * (tout - ti) + p["g_mass_air_w_k"] * (tm - ti) + _heat_gain(p, hour)) / p["air_capacity_j_k"]
+def _step(ti: float, tm: float, tout: float, room: float, hour: float, wind: float, diffuse: float, direct: float, p: dict[str, float]) -> tuple[float, float]:
+    g_direct = p["window_ua_w_k"] + p["infiltration_ua_w_k"] + p["wind_infiltration_ua_w_k_per_ms"] * wind
+    solar = p["diffuse_solar_aperture_m2"] * diffuse + p["direct_solar_aperture_m2"] * direct
+    d_ti = (g_direct * (tout - ti) + p["g_mass_air_w_k"] * (tm - ti) + p["room_ua_w_k"] * (room - ti) + solar + _heat_gain(p, hour)) / p["air_capacity_j_k"]
     d_tm = (p["g_outdoor_mass_w_k"] * (tout - tm) + p["g_mass_air_w_k"] * (ti - tm)) / p["ceff_j_k"]
     return ti + DT_SECONDS * d_ti, tm + DT_SECONDS * d_tm
 
 
-def _one_step_predictions(raw: np.ndarray, corridor: dict[str, float], outdoor: np.ndarray, indoor: np.ndarray, hours: np.ndarray) -> np.ndarray:
+def _one_step_predictions(raw: np.ndarray, corridor: dict[str, float], outdoor: np.ndarray, indoor: np.ndarray, room: np.ndarray, hours: np.ndarray, weather: np.ndarray) -> np.ndarray:
     p = _physical_parameters(raw, corridor)
     tm = float(indoor[0] + p["initial_mass_offset_c"])
     predictions = []
     for index in range(len(indoor) - 1):
-        predicted, tm = _step(float(indoor[index]), tm, float(outdoor[index]), float(hours[index]), p)
+        predicted, tm = _step(float(indoor[index]), tm, float(outdoor[index]), float(room[index]), float(hours[index]), *weather[index], p)
         predictions.append(predicted)
     return np.asarray(predictions)
 
 
-def _mass_state_at(raw: np.ndarray, corridor: dict[str, float], outdoor: np.ndarray, indoor: np.ndarray, hours: np.ndarray, origin: int) -> float:
+def _mass_state_at(raw: np.ndarray, corridor: dict[str, float], outdoor: np.ndarray, indoor: np.ndarray, room: np.ndarray, hours: np.ndarray, weather: np.ndarray, origin: int) -> float:
     p = _physical_parameters(raw, corridor)
     tm = float(indoor[0] + p["initial_mass_offset_c"])
     for index in range(origin - 1):
-        _, tm = _step(float(indoor[index]), tm, float(outdoor[index]), float(hours[index]), p)
+        _, tm = _step(float(indoor[index]), tm, float(outdoor[index]), float(room[index]), float(hours[index]), *weather[index], p)
     return tm
 
 
-def _forecast(raw: np.ndarray, corridor: dict[str, float], outdoor: np.ndarray, indoor: np.ndarray, hours: np.ndarray, origin: int, horizon: int) -> np.ndarray:
+def _forecast(raw: np.ndarray, corridor: dict[str, float], outdoor: np.ndarray, indoor: np.ndarray, room: np.ndarray, hours: np.ndarray, weather: np.ndarray, origin: int, horizon: int) -> np.ndarray:
     p = _physical_parameters(raw, corridor)
     ti = float(indoor[origin - 1])
-    tm = _mass_state_at(raw, corridor, outdoor, indoor, hours, origin)
+    tm = _mass_state_at(raw, corridor, outdoor, indoor, room, hours, weather, origin)
     result = []
     for index in range(origin, origin + horizon):
-        ti, tm = _step(ti, tm, float(outdoor[index]), float(hours[index]), p)
+        ti, tm = _step(ti, tm, float(outdoor[index]), float(room[index]), float(hours[index]), *weather[index], p)
         result.append(ti)
     return np.asarray(result)
 
 
-def _fit(corridor: dict[str, float], outdoor: np.ndarray, indoor: np.ndarray, hours: np.ndarray) -> np.ndarray:
+def _fit(corridor: dict[str, float], outdoor: np.ndarray, indoor: np.ndarray, room: np.ndarray, hours: np.ndarray, weather: np.ndarray) -> np.ndarray:
     upper_infiltration = max(10.0, float(corridor["exterior_ua_w_k"]))
-    lower = np.asarray([110 / 165, 0.15, 1.0, 0.0, -500.0, -500.0, -500.0, -3.0])
-    upper = np.asarray([260 / 165, 0.85, 20.0, upper_infiltration, 500.0, 500.0, 500.0, 3.0])
+    lower = np.asarray([110 / 165, 0.15, 1.0, 0.0, -500.0, -500.0, -500.0, -3.0, 0.0, 0.0, 0.0, 0.0])
+    upper = np.asarray([260 / 165, 0.85, 20.0, upper_infiltration, 500.0, 500.0, 500.0, 3.0, 300.0, 10.0, 10.0, 30.0])
     starts = [
-        np.asarray([1.0, split, air_mult, 0.1 * upper_infiltration, 0.0, 0.0, 0.0, 0.0])
+        np.asarray([1.0, split, air_mult, 0.1 * upper_infiltration, 0.0, 0.0, 0.0, 0.0, 30.0, 0.1, 0.1, 1.0])
         for split in (0.3, 0.5, 0.7)
         for air_mult in (2.0, 8.0)
     ]
 
     def residual(raw: np.ndarray) -> np.ndarray:
-        prediction = _one_step_predictions(raw, corridor, outdoor, indoor, hours)
+        prediction = _one_step_predictions(raw, corridor, outdoor, indoor, room, hours, weather)
         data_residual = prediction - indoor[1:]
         # Weak priors prevent unmeasured infiltration and heat gains from replacing the RDF envelope.
-        prior = np.asarray([raw[3] / upper_infiltration, raw[4] / 500.0, raw[5] / 500.0, raw[6] / 500.0]) * 0.05
+        prior = np.asarray([raw[3] / upper_infiltration, raw[4] / 500.0, raw[5] / 500.0, raw[6] / 500.0, raw[8] / 300.0, raw[9] / 10.0, raw[10] / 10.0, raw[11] / 30.0]) * 0.05
         return np.r_[data_residual, prior]
 
     fits = [least_squares(residual, start, bounds=(lower, upper), max_nfev=2500) for start in starts]
@@ -123,10 +134,12 @@ def run_validation(config_path: Path, rdf_path: Path | None = None) -> dict[str,
     timestamp, outdoor_name = config["timestamp_column"], config["outdoor_column"]
     floors = list(config["floor_columns"])
     frame[timestamp] = pd.to_datetime(frame[timestamp], errors="raise")
+    frame, weather_qa = merge_hourly_weather(frame, timestamp, (PROJECT_ROOT / config["weather_csv"]).resolve())
     qa = validate_data(frame, timestamp, [outdoor_name, *floors])
     outdoor = frame[outdoor_name].to_numpy(float)
     indoor = frame[floors].to_numpy(float)
     hours = frame[timestamp].dt.hour.to_numpy(float)
+    weather = frame[["WIN_S_Avg_2mi", "diffuse", "direct"]].to_numpy(float)
     building = extract_building(rdf_path or PROJECT_ROOT.parent / "data" / "NBuilding.rdf")
     train_end, validation_end = int(len(frame) * 0.6), int(len(frame) * 0.8)
     test_origins = list(range(validation_end, len(frame) - 24 + 1))
@@ -135,10 +148,11 @@ def run_validation(config_path: Path, rdf_path: Path | None = None) -> dict[str,
 
     for floor_index, floor in enumerate(floors):
         y = indoor[:, floor_index]
-        raw = _fit(building["corridors"][floor], outdoor[:train_end], y[:train_end], hours[:train_end])
+        room = frame[ROOM_COLUMNS[floor]].mean(axis=1).to_numpy(float)
+        raw = _fit(building["corridors"][floor], outdoor[:train_end], y[:train_end], room[:train_end], hours[:train_end], weather[:train_end])
         actual, predicted = [], []
         for origin in test_origins:
-            forecast = _forecast(raw, building["corridors"][floor], outdoor, y, hours, origin, 24)
+            forecast = _forecast(raw, building["corridors"][floor], outdoor, y, room, hours, weather, origin, 24)
             actual.extend(y[origin:origin + 24]); predicted.extend(forecast)
             for step, value in enumerate(forecast):
                 prediction_rows.append({"floor": floor, "origin": frame[timestamp].iloc[origin].isoformat(), "horizon_h": step + 1, "measured_c": y[origin + step], "predicted_c": value})
@@ -159,7 +173,7 @@ def run_validation(config_path: Path, rdf_path: Path | None = None) -> dict[str,
 
     model_mean = float(np.mean([item["metrics"]["rmse_c"] for item in floor_results.values()]))
     kernel_mean = float(np.mean([item["rmse_c"] for item in kernel.values()]))
-    result = {"method": "RDF-constrained 2R2C", "data_quality": qa, "split": {"train": [0, train_end], "validation": [train_end, validation_end], "test": [validation_end, len(frame)]}, "test_windows_per_floor": len(test_origins), "model_mean_floor_rmse_c": model_mean, "kernel_mean_floor_rmse_c": kernel_mean, "improvement_vs_kernel_pct": 100.0 * (kernel_mean - model_mean) / kernel_mean, "floors": floor_results, "kernel_floors": kernel}
+    result = {"method": "weather- and room-coupled RDF-constrained 2R2C", "data_quality": qa, "weather_data_quality": weather_qa, "split": {"train": [0, train_end], "validation": [train_end, validation_end], "test": [validation_end, len(frame)]}, "test_windows_per_floor": len(test_origins), "model_mean_floor_rmse_c": model_mean, "kernel_mean_floor_rmse_c": kernel_mean, "improvement_vs_kernel_pct": 100.0 * (kernel_mean - model_mean) / kernel_mean, "floors": floor_results, "kernel_floors": kernel}
     output = PROJECT_ROOT / "outputs" / "rdf_2r2c_validation"; output.mkdir(parents=True, exist_ok=True)
     (output / "metrics.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     pd.DataFrame(prediction_rows).to_csv(output / "predictions.csv", index=False)

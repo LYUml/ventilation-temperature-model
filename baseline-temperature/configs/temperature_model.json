@@ -1,6 +1,8 @@
 {
   "case_name": "temperature_model",
   "input_csv": "../data/TEMPERATURE-rev.csv",
+  "weather_csv": "../data/543990(1).csv",
+  "rdf_file": "../data/NBuilding.rdf",
   "timestamp_column": "Timestamp",
   "outdoor_column": "OUTDOOR",
   "floor_columns": ["2FCORRIDOR", "3FCORRIDOR", "4FCORRIDOR"],
