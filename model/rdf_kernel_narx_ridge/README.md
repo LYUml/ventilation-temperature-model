@@ -1,6 +1,6 @@
-# RDF-MSTS
+# RDF-Kernel NARX-Ridge
 
-原创统一模型：RDF约束多尺度空间热状态模型。
+Kernel慢趋势加RDF空间输入的NARX-Ridge残差递推模型。
 
 - RDF共享构件生成空间邻接和楼层拓扑；
 - RDF界面UA生成实测邻室边界权重；
@@ -11,5 +11,5 @@
 锁定测试平均RMSE约0.319 °C，相对Kernel提升约7.3%。
 
 ```powershell
-python -m model.rdf_msts.run
+python -m model.rdf_kernel_narx_ridge.run
 ```

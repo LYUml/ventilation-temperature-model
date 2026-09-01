@@ -14,7 +14,7 @@ Only these three files are treated as factual model inputs:
 |---|---|---:|
 | Kernel | stable baseline | 0.344 °C |
 | RDF graph state | topology ablation | 0.397 °C |
-| RDF-MSTS | proposed unified model | 0.319 °C |
+| RDF-Kernel NARX-Ridge | Kernel + RDF-informed Ridge correction | 0.319 °C |
 
 ## Removed assumptions
 

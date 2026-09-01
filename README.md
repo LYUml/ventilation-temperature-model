@@ -20,10 +20,18 @@ ventilation-temperature-model/
 │   ├── kernel/
 │   │   ├── README.md
 │   │   └── run.py                 稳定核基线
-│   ├── rdf_msts/
+│   ├── rc_narx_ridge/
+│   │   ├── README.md
+│   │   └── run.py                 RC轨迹＋正则残差校准
+│   ├── rdf_rc_narx_ridge/
+│   │   ├── README.md
+│   │   └── run.py                 RC＋RDF历史特征校准
+│   ├── rdf_kernel_narx_ridge/
 │   │   ├── README.md
 │   │   ├── ABLATION.md
-│   │   └── run.py                 原创统一RDF-MSTS
+│   │   └── run.py                 Kernel＋RDF残差递推
+│   ├── rc_narx_ridge_optimization/
+│   │   └── run.py                 RC结构与NARX-Ridge组合实验
 │   └── compare.py                 统一比较入口
 ├── docs/
 │   ├── MODEL_AUDIT.md             数据、参数与幻觉审计
@@ -42,9 +50,23 @@ ventilation-temperature-model/
 
 RDF共享构件生成2F↔3F↔4F拓扑，RDF界面UA生成邻室边界。平均RMSE `0.397 °C`，用于证明“加入RDF”本身不会自动改善预测。
 
-### 3. RDF-MSTS（主方法）
+### 3. RDF-Kernel NARX-Ridge
 
-RDF-constrained Multi-scale Spatial Thermal State model。Kernel慢趋势是统一状态方程内部的慢流形，图约束VARX只递推偏离慢流形的创新状态；没有多个完整模型的输出加权。平均RMSE `0.319 °C`，相对Kernel提升约`7.3%`。
+Kernel生成慢趋势，RDF选择邻室边界和相连楼层，Ridge递推预测残差。平均RMSE `0.319 °C`，相对Kernel提升约`7.3%`。
+
+### 4. RC NARX-Ridge
+
+训练集辨识的等效RC轨迹加Ridge直接多步校准。当前平均RMSE `0.350 °C`；保留为不读取房间温度的独立走廊基线。
+
+### 5. RDF-RC NARX-Ridge
+
+一阶RC轨迹加历史RC误差与RDF选取的邻室/相邻楼层历史温度，由共享Ridge校准未来24小时。当前测试RMSE约`0.321 °C`，作为待外部验证的增强候选。
+
+### 6. RC NARX-Ridge组合优化实验
+
+比较1R1C/2R2C、一步/24小时参数标定、共享/分楼层Ridge，以及历史残差/RDF历史特征。完整结果位于`results/rc_narx_ridge_optimization/metrics.json`；当前仅作为消融实验，不根据测试集反向选型。
+
+这里的`NARX-Ridge`表示使用历史状态和外部输入的Ridge校准结构，不等同于严格的Polynomial NARX；后者旧实验RMSE约`0.414 °C`。
 
 ## 运行
 

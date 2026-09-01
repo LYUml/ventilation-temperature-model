@@ -145,8 +145,8 @@ def run(config_path: Path | None = None) -> dict[str, Any]:
             "rdf": {"source": building["source_rdf"], "topology": topology}, "selected": {"lag": lag, "ridge_alpha": alpha, "spectral_radius": radius, "validation_rmse_c": validation_rmse},
             "test_windows_per_floor": len(test_origins), "model_mean_floor_rmse_c": model_mean, "kernel_mean_floor_rmse_c": kernel_mean,
             "improvement_vs_kernel_pct": 100 * (kernel_mean - model_mean) / kernel_mean, "floors": floor_results, "kernel_floors": kernel_results,
-            "slow_state_model": {"method": "RDF-MSTS", "selected": {"kernel_alpha": kernel_alpha, "lag": residual_lag, "ridge_alpha": residual_alpha, "spectral_radius": residual_radius, "validation_residual_rmse_c": residual_validation_rmse}, "mean_floor_rmse_c": slow_mean, "improvement_vs_kernel_pct": 100 * (kernel_mean - slow_mean) / kernel_mean, "floors": slow_floor_results}}
-    output = ROOT / "results" / "rdf_msts"; output.mkdir(parents=True, exist_ok=True); (output / "metrics.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+            "slow_state_model": {"method": "RDF-Kernel NARX-Ridge", "selected": {"kernel_alpha": kernel_alpha, "lag": residual_lag, "ridge_alpha": residual_alpha, "spectral_radius": residual_radius, "validation_residual_rmse_c": residual_validation_rmse}, "mean_floor_rmse_c": slow_mean, "improvement_vs_kernel_pct": 100 * (kernel_mean - slow_mean) / kernel_mean, "floors": slow_floor_results}}
+    output = ROOT / "results" / "rdf_kernel_narx_ridge"; output.mkdir(parents=True, exist_ok=True); (output / "metrics.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
 
 
