@@ -1,33 +1,65 @@
-# Python cache and build files
+# Python bytecode and caches
 __pycache__/
 *.py[cod]
+*$py.class
+
+# Packaging and build outputs
 *.egg-info/
+.eggs/
 build/
 dist/
+pip-wheel-metadata/
 
 # Virtual environments
 .venv/
 venv/
 env/
+ENV/
+.python-version
 
-# Test and analysis caches
+# Test, lint, type-check and coverage caches
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.pyright/
+.hypothesis/
+.tox/
+.nox/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 
-# IDE and operating-system files
+# Notebooks
+.ipynb_checkpoints/
+
+# Editors and operating-system files
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
 .DS_Store
+._*
 Thumbs.db
+
+# Local secrets and environment overrides
+.env
+.env.*
+!.env.example
 
 # Logs and temporary files
 *.log
 *.tmp
 *.temp
+*.bak
 
-# Generated model outputs
+# Trained models and generated outputs
+*.pkl
+*.pickle
+*.joblib
+checkpoints/
+artifacts/
 results/
 *.xlog
 
