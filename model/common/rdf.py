@@ -4,9 +4,9 @@ import argparse
 import json
 import re
 from collections import defaultdict
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-
 
 SUBJECT_BLOCK = re.compile(r"(?ms)^<([^>]+)>\s+(.*?)(?=\n<|\Z)")
 
@@ -16,7 +16,10 @@ def _number(body: str, predicate: str) -> float | None:
     return float(match.group(1).strip('"')) if match else None
 
 
-def extract_building(rdf_path: Path) -> dict[str, Any]:
+def extract_building(
+    rdf_path: Path,
+    target_names: Iterable[str] | None = None,
+) -> dict[str, Any]:
     """Extract the subset of the Moosas Turtle/RDF needed by this prototype."""
     text = rdf_path.resolve().read_text(encoding="utf-8")
     blocks = {name: body for name, body in SUBJECT_BLOCK.findall(text)}
@@ -132,10 +135,14 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
     for name, space in spaces.items():
         space["adjacent_spaces"] = adjacency.get(name, [])
 
-    target_names = ["2FCORRIDOR", "3FCORRIDOR", "4FCORRIDOR"]
-    missing = [name for name in target_names if name not in spaces]
+    requested = list(target_names) if target_names is not None else [
+        "2FCORRIDOR",
+        "3FCORRIDOR",
+        "4FCORRIDOR",
+    ]
+    missing = [name for name in requested if name not in spaces]
     if missing:
-        raise ValueError(f"RDF is missing target corridor spaces: {missing}")
+        raise ValueError(f"RDF is missing target spaces: {missing}")
     return {
         "source_rdf": str(rdf_path.resolve()),
         "format": "Turtle RDF exported by Moosas",
@@ -143,7 +150,7 @@ def extract_building(rdf_path: Path) -> dict[str, Any]:
         "space_count": len(spaces),
         "interface_count": text.count("a bot:Interface"),
         "explicit_door_interface_count": door_count,
-        "corridors": {name: spaces[name] for name in target_names},
+        "corridors": {name: spaces[name] for name in requested},
         "spaces": spaces,
         "limitations": [
             "No explicit door interfaces were found." if door_count == 0 else "Door interfaces exist but opening schedules still require review.",
