@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
-from base_ta import BaseTaModel, calculateBaseTa
+from base_ta import BaseTaModel, RdfMz5r1cModel, calculateBaseTa
 from model.common.data import ROOT, load_config, load_inputs
 
 
@@ -69,6 +69,22 @@ class BaseTaApiTests(unittest.TestCase):
     def test_unknown_method_is_rejected(self):
         with self.assertRaises(ValueError):
             BaseTaModel(method="unknown")
+
+    def test_mz5r1c_is_design_stage_and_finite(self):
+        model = RdfMz5r1cModel(parameters={"allow_non_project_assumptions": True})
+        result = model.simulate(
+            ROOT / self.config["rdf_file"], self.forecast[self.weather_columns], ["2FCORRIDOR"]
+        )
+        self.assertFalse(model.last_metadata["requires_measured_indoor_history"])
+        self.assertTrue(model.last_metadata["warmup"]["converged"])
+        self.assertEqual(len(result["2FCORRIDOR"]), 24)
+        self.assertTrue(np.isfinite(result["2FCORRIDOR"]).all())
+
+    def test_design_model_rejects_silent_assumptions_by_default(self):
+        rdf = ROOT / self.config["rdf_file"]
+        weather = self.forecast[self.weather_columns]
+        with self.assertRaisesRegex(ValueError, "Strict project-data mode"):
+            RdfMz5r1cModel().simulate(rdf, weather, ["2FCORRIDOR"])
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import json
 import re
 from collections import defaultdict
 from collections.abc import Iterable
@@ -14,6 +15,18 @@ SUBJECT_BLOCK = re.compile(r"(?ms)^<([^>]+)>\s+(.*?)(?=\n<|\Z)")
 def _number(body: str, predicate: str) -> float | None:
     match = re.search(rf"{re.escape(predicate)}\s+([^\s;,]+)", body)
     return float(match.group(1).strip('"')) if match else None
+
+
+def _setting(body: str, name: str) -> str | float | None:
+    """Read Moosas' non-Turtle quoted setting predicates."""
+    match = re.search(rf'(?m)^\s*"{re.escape(name)}"\s+([^\s;,]+)', body)
+    if not match:
+        return None
+    raw = match.group(1).strip('"<>')
+    try:
+        return float(raw)
+    except ValueError:
+        return raw
 
 
 def extract_building(
@@ -40,6 +53,12 @@ def extract_building(
         name: {
             "area_m2": _number(body, "bes:hasArea_m2"),
             "u_value_w_m2k": _number(body, "moosas:U_Value"),
+            "shgc": _number(body, "moosas:SHGC"),
+            "normal_xyz": (
+                _number(body, "bes:hasNormalVectorX_m"),
+                _number(body, "bes:hasNormalVectorY_m"),
+                _number(body, "bes:hasNormalVectorZ_m"),
+            ),
         }
         for name, body in blocks.items()
         if "a bot:Element" in body
@@ -72,6 +91,33 @@ def extract_building(
                 }
             )
 
+    daily_schedules: dict[str, dict[str, Any]] = {}
+    for name, body in blocks.items():
+        if "a bes:DailySchedule" not in body:
+            continue
+        match = re.search(r'bes:hourlyValuesJson\s+"(\[[^\"]*\])"', body)
+        values = json.loads(match.group(1)) if match else None
+        daily_schedules[name] = {
+            "values": values,
+            "time_step_hours": _number(body, "bes:timeStepHours"),
+            "value_count": _number(body, "bes:valueCount"),
+            "unit": (re.search(r'bes:valueUnit\s+"([^\"]+)"', body) or [None, None])[1],
+        }
+
+    weekday_predicates = (
+        "mondaySchedule", "tuesdaySchedule", "wednesdaySchedule", "thursdaySchedule",
+        "fridaySchedule", "saturdaySchedule", "sundaySchedule",
+    )
+    weekly_schedules: dict[str, dict[str, Any]] = {}
+    for name, body in blocks.items():
+        if "a bes:WeeklySchedule" not in body:
+            continue
+        days = {}
+        for predicate in weekday_predicates:
+            match = re.search(rf"bes:{predicate}\s+<([^>]+)>", body)
+            days[predicate.removesuffix("Schedule")] = match.group(1) if match else None
+        weekly_schedules[name] = {"days": days}
+
     spaces: dict[str, Any] = {}
     for name, body in blocks.items():
         if not name.startswith("Space_") or "a bot:Space" not in body:
@@ -81,26 +127,65 @@ def extract_building(
         volume = _number(body, "bes:hasVolume_m3")
         height = volume / floor_area if floor_area and volume else None
         items = interfaces.get(uid, [])
+        def is_exterior(item: dict[str, Any]) -> bool:
+            element = item.get("element")
+            return bool(element) and len(element_spaces.get(element, ())) == 1
+
         exterior_wall_area = sum(
             item["area_m2"] or 0.0
             for item in items
-            if item["surface_type"] == "bes:ExteriorWall"
+            if item["surface_type"] == "bes:ExteriorWall" and is_exterior(item)
         )
         window_area = sum(
             item["area_m2"] or 0.0
             for item in items
-            if item["surface_type"] == "bes:OperableWindow"
+            if item["surface_type"] == "bes:OperableWindow" and is_exterior(item)
         )
         opaque_exterior_ua = sum(
             (item["area_m2"] or 0.0) * (item["u_value_w_m2k"] or 0.0)
             for item in items
-            if item["surface_type"] == "bes:ExteriorWall"
+            if item["surface_type"] == "bes:ExteriorWall" and is_exterior(item)
         )
         window_ua = sum(
             (item["area_m2"] or 0.0) * (item["u_value_w_m2k"] or 0.0)
             for item in items
-            if item["surface_type"] == "bes:OperableWindow"
+            if item["surface_type"] == "bes:OperableWindow" and is_exterior(item)
         )
+        exterior_windows = [
+            {
+                "element": item["element"],
+                "area_m2": item["area_m2"],
+                "u_value_w_m2k": item["u_value_w_m2k"],
+                "shgc": element_properties.get(item["element"], {}).get("shgc"),
+                "normal_xyz": element_properties.get(item["element"], {}).get("normal_xyz"),
+            }
+            for item in items
+            if item["surface_type"] == "bes:OperableWindow" and is_exterior(item)
+        ]
+        other_exterior_ua = sum(
+            (item["area_m2"] or 0.0) * (item["u_value_w_m2k"] or 0.0)
+            for item in items
+            if is_exterior(item)
+            and item["surface_type"]
+            not in {"bes:ExteriorWall", "bes:OperableWindow", "bes:InteriorWall"}
+        )
+        settings = {
+            key: _setting(body, key)
+            for key in (
+                "type",
+                "standard",
+                "zone_infiltration",
+                "zone_win_SHGC",
+                "zone_h_temp",
+                "zone_c_temp",
+                "zone_work_start",
+                "zone_work_end",
+                "zone_ppsm",
+                "zone_popheat",
+                "zone_lighting",
+                "zone_equipment",
+            )
+        }
         spaces[uid] = {
             "floor_area_m2": floor_area,
             "volume_m3": volume,
@@ -108,10 +193,14 @@ def extract_building(
             "base_height_m": space_level.get(uid),
             "exterior_wall_area_m2": exterior_wall_area,
             "operable_window_area_m2": window_area,
+            "exterior_windows": exterior_windows,
             "opaque_exterior_ua_w_k": opaque_exterior_ua,
             "window_ua_w_k": window_ua,
-            "exterior_ua_w_k": opaque_exterior_ua + window_ua,
+            "other_exterior_ua_w_k": other_exterior_ua,
+            "exterior_ua_w_k": opaque_exterior_ua + window_ua + other_exterior_ua,
             "interface_count": len(items),
+            "settings": settings,
+            "north_direction_deg": _number(body, "bes:hasNorthDirection_deg"),
         }
 
     adjacency: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -152,6 +241,8 @@ def extract_building(
         "explicit_door_interface_count": door_count,
         "corridors": {name: spaces[name] for name in requested},
         "spaces": spaces,
+        "daily_schedules": daily_schedules,
+        "weekly_schedules": weekly_schedules,
         "limitations": [
             "No explicit door interfaces were found." if door_count == 0 else "Door interfaces exist but opening schedules still require review.",
             "RDF geometry does not contain measured ELA or pressure-flow test data.",
