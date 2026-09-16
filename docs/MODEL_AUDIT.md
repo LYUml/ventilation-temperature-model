@@ -10,6 +10,8 @@ With explicit research assumptions enabled, the former RDF-schedule scenario pro
 
 After the temperature sensor label was confirmed and corrected from `4F411` to `4F412`, the new locked-test RMSE values are 0.597, 0.709, 1.275 and 1.325 °C for 2F corridor, 3F corridor, 4F corridor and 4F412 respectively (four-target mean 0.976 °C). Measurements remain evaluation-only inputs.
 
+The 4F412 one-at-a-time uncertainty experiment identifies effective thermal capacitance as the dominant tested driver. Relative capacitance factors 2.0 and 4.0 reduce validation RMSE from 0.920 °C to 0.506 and 0.333 °C, and locked-test RMSE from 1.325 °C to 0.771 and 0.512 °C. These are uncertainty scenarios rather than fitted project values. An experimental MZ5R2C variant that adds physical zone-air capacitance reduces locked-test RMSE only to 1.292 °C; a second air state alone does not replace missing material-layer capacitance.
+
 ## Authoritative inputs
 
 Only these three files are treated as factual model inputs:

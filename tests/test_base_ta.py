@@ -105,6 +105,5 @@ class BaseTaApiTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Strict project-data mode"):
             RdfMz5r1cModel().simulate(rdf, weather, ["2FCORRIDOR"])
 
-
 if __name__ == "__main__":
     unittest.main()
