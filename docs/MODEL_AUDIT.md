@@ -6,7 +6,9 @@
 
 The model consumes project RDF geometry/U-values, construction-level SHGC, hourly occupancy/lighting/equipment schedules, setpoints and shared interfaces. Strict mode rejects execution while project-specific thermal mass, verified facade solar inputs and complete HVAC/airflow boundaries remain unavailable.
 
-With explicit research assumptions enabled, the current partial-project-data result is 0.561, 0.591 and 1.062 °C for 2F, 3F and 4F (mean 0.738 °C). It is not an all-project-data result. Superseded design experiments and scores are preserved under `archive/`.
+With explicit research assumptions enabled, the former RDF-schedule scenario produced 0.561, 0.591 and 1.062 °C for 2F, 3F and 4F (mean 0.738 °C). The new validation scenario retains those corridors and adds 4F412 as an explicitly free-running, zero-internal-gain space. Because 4F412 is coupled to adjacent zones, its schedule override also changes corridor predictions; the old aggregate must not be reused for the new scenario. Neither scenario is an all-project-data result. Superseded design experiments and scores are preserved under `archive/`.
+
+After the temperature sensor label was confirmed and corrected from `4F411` to `4F412`, the new locked-test RMSE values are 0.597, 0.709, 1.275 and 1.325 °C for 2F corridor, 3F corridor, 4F corridor and 4F412 respectively (four-target mean 0.976 °C). Measurements remain evaluation-only inputs.
 
 ## Authoritative inputs
 

@@ -71,14 +71,33 @@ class BaseTaApiTests(unittest.TestCase):
             BaseTaModel(method="unknown")
 
     def test_mz5r1c_is_design_stage_and_finite(self):
-        model = RdfMz5r1cModel(parameters={"allow_non_project_assumptions": True})
+        model = RdfMz5r1cModel(
+            parameters={"allow_non_project_assumptions": True},
+            baseline_spaces=["4F412"],
+        )
         result = model.simulate(
-            ROOT / self.config["rdf_file"], self.forecast[self.weather_columns], ["2FCORRIDOR"]
+            ROOT / self.config["rdf_file"], self.forecast[self.weather_columns],
+            ["2FCORRIDOR", "4F412"],
         )
         self.assertFalse(model.last_metadata["requires_measured_indoor_history"])
+        self.assertEqual(model.last_metadata["explicit_baseline_spaces"], ["4F412"])
         self.assertTrue(model.last_metadata["warmup"]["converged"])
         self.assertEqual(len(result["2FCORRIDOR"]), 24)
         self.assertTrue(np.isfinite(result["2FCORRIDOR"]).all())
+        self.assertEqual(len(result["4F412"]), 24)
+        self.assertTrue(np.isfinite(result["4F412"]).all())
+
+    def test_baseline_space_rejects_unknown_rdf_name(self):
+        model = RdfMz5r1cModel(
+            parameters={"allow_non_project_assumptions": True},
+            baseline_spaces=["4F_NOT_A_SPACE"],
+        )
+        with self.assertRaisesRegex(ValueError, "RDF is missing baseline spaces"):
+            model.simulate(
+                ROOT / self.config["rdf_file"],
+                self.forecast[self.weather_columns],
+                ["2FCORRIDOR"],
+            )
 
     def test_design_model_rejects_silent_assumptions_by_default(self):
         rdf = ROOT / self.config["rdf_file"]

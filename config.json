@@ -4,5 +4,7 @@
   "rdf_file": "data/building.rdf",
   "timestamp_column": "Timestamp",
   "outdoor_column": "OUTDOOR",
-  "floor_columns": ["2FCORRIDOR", "3FCORRIDOR", "4FCORRIDOR"]
+  "floor_columns": ["2FCORRIDOR", "3FCORRIDOR", "4FCORRIDOR"],
+  "design_validation_spaces": ["2FCORRIDOR", "3FCORRIDOR", "4FCORRIDOR", "4F412"],
+  "design_baseline_spaces": ["4F412"]
 }

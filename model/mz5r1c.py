@@ -74,10 +74,12 @@ class RdfMz5r1cModel:
     """One simultaneous multi-zone 5R1C state model derived from RDF."""
 
     def __init__(self, *, timestamp_column: str = "Timestamp", outdoor_column: str | None = None,
-                 parameters: Mz5r1cParameters | Mapping[str, Any] | None = None) -> None:
+                 parameters: Mz5r1cParameters | Mapping[str, Any] | None = None,
+                 baseline_spaces: Sequence[str] | None = None) -> None:
         self.timestamp_column = timestamp_column
         self.outdoor_column = outdoor_column
         self.parameters = _params(parameters)
+        self.baseline_spaces = tuple(dict.fromkeys(baseline_spaces or ()))
         self.last_metadata: dict[str, Any] | None = None
 
     def simulate(self, inputRdf: str | Path, weather: pd.DataFrame,
@@ -102,6 +104,9 @@ class RdfMz5r1cModel:
         missing = [n for n in targets if n not in spaces]
         if missing:
             raise ValueError(f"RDF is missing usable target spaces: {missing}")
+        missing_baselines = [n for n in self.baseline_spaces if n not in spaces]
+        if missing_baselines:
+            raise ValueError(f"RDF is missing baseline spaces: {missing_baselines}")
         assumption_audit = [
             "thermal_capacitance_j_m2k is an ISO archetype value, not derived from project material layers",
             "mass_area_factor and total_internal_area_factor are ISO archetype factors, not project surface/material calculations",
@@ -115,25 +120,30 @@ class RdfMz5r1cModel:
                 + "; ".join(assumption_audit)
                 + ". Pass parameters={'allow_non_project_assumptions': True} only for an explicitly labelled research run."
             )
-        data = self._assemble(names, spaces, building)
+        data = self._assemble(names, spaces, building, set(self.baseline_spaces))
         result, warmup, max_iterations = self._run(data, frame, outdoor, diffuse, direct)
         self.last_metadata = {
             "method": "RDF-driven simultaneous multi-zone ISO 13790 5R1C",
             "mode": "design", "requires_measured_indoor_history": False,
-            "baseline_condition": "corridors free-running; programmed adjacent zones use ideal RDF temperature bands",
+            "baseline_condition": (
+                "RDF ALL_ZERO spaces and explicitly declared baseline spaces are free-running; "
+                "baseline spaces have zero people, lighting and equipment gains and no ideal HVAC"
+            ),
+            "explicit_baseline_spaces": list(self.baseline_spaces),
             "parameters": asdict(self.parameters), "warmup": warmup,
             "project_data_compliant": False,
             "non_project_inputs": assumption_audit,
             "maximum_coupling_iterations": max_iterations,
             "limitations": [
                 "Facade normals and north direction are parsed but not yet consumed; solar uses a predeclared direct-exposure factor.",
-                "Door opening schedules and pressure-flow measurements are absent; only RDF conduction and background infiltration are represented.",
+                "Door/window airflow is not modeled here; only RDF conduction and background infiltration are represented.",
+                "Declaring a baseline space disables internal gains and ideal HVAC, but does not silently set RDF background infiltration to zero.",
             ],
         }
         ix = {n: i for i, n in enumerate(names)}
         return {n: result[:, ix[n]].tolist() for n in targets}
 
-    def _assemble(self, names, spaces, building):
+    def _assemble(self, names, spaces, building, baseline_spaces):
         p = self.parameters; n = len(names); ix = {name: i for i, name in enumerate(names)}
         arrays = {key: np.zeros(n) for key in ("af", "cm", "am", "at", "hem", "hw", "hve", "solar")}
         coupling = np.zeros((n, n)); programs = []; seen = set()
@@ -153,18 +163,20 @@ class RdfMz5r1cModel:
             # retained for compliance comparison, not used to overwrite a
             # more specific construction value.
             arrays["solar"][i] = sum(float(w["area_m2"] or 0) * float(w["shgc"]) for w in windows)
-            settings = s.get("settings", {}); zp = settings.get("zone_ppsm") == "ALL_ZERO"
+            settings = s.get("settings", {}); is_baseline = name in baseline_spaces
+            zp = settings.get("zone_ppsm") == "ALL_ZERO"
             zl = settings.get("zone_lighting") == "ALL_ZERO"; ze = settings.get("zone_equipment") == "ALL_ZERO"
             programs.append({
                 "area": af,
-                "people_schedule": settings.get("zone_ppsm"),
-                "lighting_schedule": settings.get("zone_lighting"),
-                "equipment_schedule": settings.get("zone_equipment"),
+                "people_schedule": "ALL_ZERO" if is_baseline else settings.get("zone_ppsm"),
+                "lighting_schedule": "ALL_ZERO" if is_baseline else settings.get("zone_lighting"),
+                "equipment_schedule": "ALL_ZERO" if is_baseline else settings.get("zone_equipment"),
                 "person_w": _number(s, "zone_popheat", p.occupant_sensible_w),
                 "start": int(_number(s, "zone_work_start", p.work_start_hour)),
                 "end": int(_number(s, "zone_work_end", p.work_end_hour)),
                 "heat": settings.get("zone_h_temp"), "cool": settings.get("zone_c_temp"),
-                "active": not (zp and zl and ze),
+                "active": False if is_baseline else not (zp and zl and ze),
+                "explicit_baseline": is_baseline,
             })
             for edge in s.get("adjacent_spaces", []):
                 other = edge["space"]
