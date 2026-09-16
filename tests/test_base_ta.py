@@ -6,6 +6,7 @@ import numpy as np
 
 from base_ta import BaseTaModel, RdfMz5r1cModel, calculateBaseTa
 from model.common.data import ROOT, load_config, load_inputs
+from rdf_weather_temperature import simulateIndoorTemperature
 
 
 class BaseTaApiTests(unittest.TestCase):
@@ -104,6 +105,56 @@ class BaseTaApiTests(unittest.TestCase):
         weather = self.forecast[self.weather_columns]
         with self.assertRaisesRegex(ValueError, "Strict project-data mode"):
             RdfMz5r1cModel().simulate(rdf, weather, ["2FCORRIDOR"])
+
+    def test_compact_rdf_weather_interface_returns_all_spaces_by_default(self):
+        result = simulateIndoorTemperature(
+            ROOT / self.config["rdf_file"],
+            ROOT / "data/weather_54399.csv",
+        )
+        self.assertIsInstance(result, dict)
+        self.assertIn("4F412", result)
+        self.assertIn("2FCORRIDOR", result)
+        for values in result.values():
+            self.assertEqual(len(values), 736)
+            self.assertTrue(np.isfinite(values).all())
+
+    def test_compact_interface_accepts_canonical_weather_csv(self):
+        weather = self.forecast
+        canonical = weather[["Timestamp", "TEM", "diffuse", "direct"]].rename(
+            columns={
+                "Timestamp": "timestamp",
+                "TEM": "outdoor_temperature_c",
+                "diffuse": "diffuse_solar_w_m2",
+                "direct": "direct_solar_w_m2",
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "weather.csv"
+            canonical.to_csv(path, index=False)
+            result = simulateIndoorTemperature(
+                ROOT / self.config["rdf_file"], path, "4F412"
+            )
+        self.assertEqual(list(result), ["4F412"])
+        self.assertEqual(len(result["4F412"]), len(canonical))
+        self.assertTrue(np.isfinite(result["4F412"]).all())
+
+    def test_reusable_interface_accepts_another_rdf_space(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "weather.csv"
+            self.forecast[["Timestamp", "TEM", "diffuse", "direct"]].rename(
+                columns={
+                    "Timestamp": "timestamp",
+                    "TEM": "outdoor_temperature_c",
+                    "diffuse": "diffuse_solar_w_m2",
+                    "direct": "direct_solar_w_m2",
+                }
+            ).to_csv(path, index=False)
+            result = simulateIndoorTemperature(
+                ROOT / self.config["rdf_file"], path, "2FCORRIDOR"
+            )
+        self.assertEqual(list(result), ["2FCORRIDOR"])
+        self.assertEqual(len(result["2FCORRIDOR"]), len(self.forecast))
+        self.assertTrue(np.isfinite(result["2FCORRIDOR"]).all())
 
 if __name__ == "__main__":
     unittest.main()
